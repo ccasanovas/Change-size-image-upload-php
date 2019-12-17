@@ -9,51 +9,29 @@ function getExtension($str) {
 	return $ext;
 }
 
-/**
- * Opens new image
- *
- * @param $filename
- */
-function icreate($filename)
-{
-  $isize = getimagesize($filename);
-  if ($isize['mime']=='image/jpeg')
-    return imagecreatefromjpeg($filename);
-  elseif ($isize['mime']=='image/png')
-    return imagecreatefrompng($filename);
-  /* Add as many formats as you can */
+function resize_image($file, $width, $height) {
+    list($w, $h) = getimagesize($file);
+    /* calculo la nueva imagen manteniendo relación ancho/alto */
+    $ratio = max($width/$w, $height/$h);
+    $h = ceil($height / $ratio);
+    $x = ($w - $width / $ratio) / 2;
+    $w = ceil($width / $ratio);
+    /* leo los datos binarios del archivo */
+    $imgString = file_get_contents($file);
+    /* creo la imagen de una cadena */
+    $image = imagecreatefromstring($imgString);
+    $tmp = imagecreatetruecolor($width, $height);
+    imagecopyresampled($tmp, $image,
+    0, 0,
+    $x, 0,
+    $width, $height,
+    $w, $h);
+    imagejpeg($tmp, $file, 100);
+    return $file;
+    /* limpio la memoria */
+    imagedestroy($image);
+    imagedestroy($tmp);
 }
-
-/**
- * Resize image maintaining aspect ratio, occuping
- * as much as possible with width and height inside
- * params.
- *
- * @param $image
- * @param $width
- * @param $height
- */
-function resizeMax($image, $width, $height)
-{
-  /* Original dimensions */
-  $origw = imagesx($image);
-  $origh = imagesy($image);
-
-  $ratiow = $width / $origw;
-  $ratioh = $height / $origh;
-  $ratio = min($ratioh, $ratiow);
-
-  $neww = $origw * $ratio;
-  $newh = $origh * $ratio;
-
-  $new = imageCreateTrueColor($neww, $newh);
-
-  imagecopyresampled($new, $image, 0, 0, 0, 0, $neww, $newh, $origw, $origh);
-  return $new;
-}
-
-$imgh = icreate($_FILES["file$n"]["tmp_name"]);
-$imgr = resizeMax($imgh, 400, 200);
 
 
 
@@ -89,7 +67,7 @@ for ($n=1; $n<=1; $n++){
 			$tamano = $_FILES["file$n"]["size"] / 1024;
 			$nombrearchivo = utf8_decode($_FILES["file$n"]["name"]);				
 			echo "<br>";
-			// Si el tamaño es mayor o igual a Ejecutar acción
+			// Si el tamaño es mayor o igual a Ejecutar función resize
 			if ($tamano >= "0" ){
 
 				//Parámetros optimización, resolución máxima permitida
@@ -109,55 +87,16 @@ for ($n=1; $n<=1; $n++){
 				$urlarchivo = "arch/".$nombrecolocar;				
 				$filename1 = $urlarchivo;	
 				$a = 1;
-				$resultado = move_uploaded_file($_FILES["file$n"]["tmp_name"],$urlarchivo);
+				$resultado = move_uploaded_file(resize_image($_FILES["file$n"]["tmp_name"], 200, 100),$urlarchivo);
 				//imagejpeg($tmp1,$filename1,100);
-				
+				echo "subida de imagen modificada";
 			} 
 
 			// Si el tamaño es distinto del declarado arriba en la variable $tamano
 
 			else {
 
-			//Redimensionar
-			$rtOriginal=$_FILES["file$n"]['tmp_name'];
-
-			if($_FILES["file$n"]['type']=='image/jpeg'){
-			$original = imagecreatefromjpeg($rtOriginal);
-			}
-			else if($_FILES["file$n"]['type']=='image/png'){
-			$original = imagecreatefrompng($rtOriginal);
-			}
-			else if($_FILES["file$n"]['type']=='image/gif'){
-			$original = imagecreatefromgif($rtOriginal);
-			}
-
- 
-			list($ancho,$alto)=getimagesize($rtOriginal);
-
-			$x_ratio = $max_ancho / $ancho;
-			$y_ratio = $max_alto / $alto;
-
-
-			if( ($ancho <= $max_ancho) && ($alto <= $max_alto) ){
-			    $ancho_final = $ancho;
-			    $alto_final = $alto;
-			}
-			elseif (($x_ratio * $alto) < $max_alto){
-			    $alto_final = ceil($x_ratio * $alto);
-			    $ancho_final = $max_ancho;
-			}
-			else{
-			    $ancho_final = ceil($y_ratio * $ancho);
-			    $alto_final = $max_alto;
-			}
-
-			$lienzo=imagecreatetruecolor($ancho_final,$alto_final); 
-
-			imagecopyresampled($lienzo,$original,0,0,0,0,$ancho_final, $alto_final,$ancho,$alto);
-			 
-			//imagedestroy($original);
-			 
-			$cal=8;
+			
 
 			echo "ext:".$extension;echo "<br>";echo "<br>";
 			//$nombrearchivo = str_replace("%.$extension%", "", $nombrearchivo);
@@ -170,19 +109,9 @@ for ($n=1; $n<=1; $n++){
 			$urlarchivo = "arch/".$nombrecolocar;				
 			$filename1 = $urlarchivo;	
 			$a = 1;
+			$resultado = move_uploaded_file(($_FILES["file$n"]["tmp_name"], 200, 100),$urlarchivo);
 
-			if($_FILES["file$n"]['type']=='image/jpeg'){
-			imagejpeg($lienzo,"arch/".$nombrecolocar);
-			move_uploaded_file($imgr,$urlarchivo);
-			}
-			else if($_FILES["file$n"]['type']=='image/png'){
-			imagepng($lienzo,"arch/".$nombrecolocar);
-			move_uploaded_file($imgr,$urlarchivo);
-			}
-			else if($_FILES["file$n"]['type']=='image/gif'){
-			imagegif($lienzo,"arch/".$nombrecolocar);
-			move_uploaded_file($imgr,$urlarchivo);
-			}
+			echo "subida de imagen sin modificar";
 
 
 
@@ -194,7 +123,6 @@ for ($n=1; $n<=1; $n++){
 		
 }
 
-echo "imagen subida correctamente";
 
 
 
